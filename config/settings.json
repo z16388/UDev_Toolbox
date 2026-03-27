@@ -1,0 +1,39 @@
+{
+  "version": "1.0.0",
+  "theme": "dark",
+  "language": "zh-CN",
+  "page_order": [
+    "home",
+    "apk",
+    "string",
+    "file",
+    "unity",
+    "network",
+    "time",
+    "wiki"
+  ],
+  "recent_files": [],
+  "wiki_pages": [
+    {
+      "id": "59600dad",
+      "title": "test",
+      "icon": "ic_fluent_document_filled",
+      "created": "2026-03-27T15:26:25.008852",
+      "modified": "2026-03-27T15:26:28.626079"
+    }
+  ],
+  "custom_wiki_icons": {},
+  "git_settings": {
+    "auto_sync": false,
+    "remote_url": "",
+    "branch": "main"
+  },
+  "apk_settings": {
+    "aapt_path": "",
+    "auto_extract_icon": true
+  },
+  "network_settings": {
+    "timeout": 30,
+    "verify_ssl": false
+  }
+}

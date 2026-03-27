@@ -1,0 +1,186 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+"""
+可复制文本组件
+"""
+
+from PyQt5.QtCore import Qt
+from PyQt5.QtWidgets import QTextEdit, QApplication, QWidget, QVBoxLayout, QHBoxLayout, QPushButton
+from PyQt5.QtGui import QFont
+
+from siui.core import SiGlobal
+
+
+class CopyableTextArea(QWidget):
+    """可复制的文本区域，支持选择和复制"""
+    
+    def __init__(self, parent=None, monospace=True, min_height=60, max_height=300):
+        super().__init__(parent)
+        
+        self.layout = QVBoxLayout(self)
+        self.layout.setContentsMargins(0, 0, 0, 0)
+        self.layout.setSpacing(4)
+        
+        # 文本编辑区域
+        self.text_edit = QTextEdit(self)
+        self.text_edit.setReadOnly(True)
+        self.text_edit.setMinimumHeight(min_height)
+        self.text_edit.setMaximumHeight(max_height)
+        
+        # 样式设置
+        text_color = SiGlobal.siui.colors.get('TEXT_A', '#FFFFFF')
+        bg_color = SiGlobal.siui.colors.get('INTERFACE_BG_C', '#1E1E1E')
+        border_color = SiGlobal.siui.colors.get('INTERFACE_BG_D', '#333333')
+        
+        font_family = "Consolas, 'Courier New', monospace" if monospace else "inherit"
+        
+        self.text_edit.setStyleSheet(f"""
+            QTextEdit {{
+                background-color: {bg_color};
+                color: {text_color};
+                border: 1px solid {border_color};
+                border-radius: 6px;
+                padding: 8px;
+                font-family: {font_family};
+                font-size: 13px;
+                selection-background-color: #264F78;
+            }}
+            QTextEdit:focus {{
+                border-color: #0078D4;
+            }}
+        """)
+        
+        # 按钮行
+        self.btn_layout = QHBoxLayout()
+        self.btn_layout.setContentsMargins(0, 0, 0, 0)
+        self.btn_layout.setSpacing(8)
+        
+        self.copy_btn = QPushButton("复制全部")
+        self.copy_btn.setFixedSize(80, 28)
+        self.copy_btn.clicked.connect(self.copy_all)
+        self.copy_btn.setStyleSheet(f"""
+            QPushButton {{
+                background-color: {border_color};
+                color: {text_color};
+                border: none;
+                border-radius: 4px;
+                padding: 4px 12px;
+            }}
+            QPushButton:hover {{
+                background-color: #404040;
+            }}
+            QPushButton:pressed {{
+                background-color: #505050;
+            }}
+        """)
+        
+        self.btn_layout.addStretch()
+        self.btn_layout.addWidget(self.copy_btn)
+        
+        self.layout.addWidget(self.text_edit)
+        self.layout.addLayout(self.btn_layout)
+    
+    def setText(self, text: str):
+        """设置文本内容"""
+        self.text_edit.setPlainText(text)
+    
+    def text(self) -> str:
+        """获取文本内容"""
+        return self.text_edit.toPlainText()
+    
+    def copy_all(self):
+        """复制全部文本"""
+        QApplication.clipboard().setText(self.text_edit.toPlainText())
+        # 显示复制成功提示
+        try:
+            window = self.window()
+            if hasattr(window, 'LayerRightMessageSidebar'):
+                window.LayerRightMessageSidebar().send(
+                    text="已复制到剪贴板",
+                    msg_type=1,
+                    fold_after=1500
+                )
+        except:
+            pass
+    
+    def setMinimumHeight(self, h: int):
+        self.text_edit.setMinimumHeight(h)
+    
+    def setMaximumHeight(self, h: int):
+        self.text_edit.setMaximumHeight(h)
+
+
+class CopyableLineEdit(QWidget):
+    """单行可复制文本，适合显示哈希值等"""
+    
+    def __init__(self, parent=None, label="", monospace=True):
+        super().__init__(parent)
+        
+        self.layout = QHBoxLayout(self)
+        self.layout.setContentsMargins(0, 0, 0, 0)
+        self.layout.setSpacing(8)
+        
+        text_color = SiGlobal.siui.colors.get('TEXT_A', '#FFFFFF')
+        label_color = SiGlobal.siui.colors.get('TEXT_B', '#AAAAAA')
+        bg_color = SiGlobal.siui.colors.get('INTERFACE_BG_C', '#1E1E1E')
+        
+        # 标签
+        if label:
+            from PyQt5.QtWidgets import QLabel
+            self.label = QLabel(label)
+            self.label.setFixedWidth(70)
+            self.label.setStyleSheet(f"color: {label_color};")
+            self.layout.addWidget(self.label)
+        
+        # 文本
+        from PyQt5.QtWidgets import QLineEdit
+        self.line_edit = QLineEdit(self)
+        self.line_edit.setReadOnly(True)
+        self.line_edit.setFixedHeight(32)
+        
+        font_family = "Consolas, 'Courier New', monospace" if monospace else "inherit"
+        self.line_edit.setStyleSheet(f"""
+            QLineEdit {{
+                background-color: {bg_color};
+                color: {text_color};
+                border: 1px solid #333;
+                border-radius: 4px;
+                padding: 4px 8px;
+                font-family: {font_family};
+                selection-background-color: #264F78;
+            }}
+        """)
+        
+        # 复制按钮
+        self.copy_btn = QPushButton("复制")
+        self.copy_btn.setFixedSize(50, 28)
+        self.copy_btn.clicked.connect(self.copy_text)
+        self.copy_btn.setStyleSheet(f"""
+            QPushButton {{
+                background-color: #333;
+                color: {text_color};
+                border: none;
+                border-radius: 4px;
+            }}
+            QPushButton:hover {{
+                background-color: #404040;
+            }}
+        """)
+        
+        self.layout.addWidget(self.line_edit, 1)
+        self.layout.addWidget(self.copy_btn)
+    
+    def setText(self, text: str):
+        self.line_edit.setText(text)
+    
+    def text(self) -> str:
+        return self.line_edit.text()
+    
+    def copy_text(self):
+        QApplication.clipboard().setText(self.line_edit.text())
+        try:
+            window = self.window()
+            if hasattr(window, 'LayerRightMessageSidebar'):
+                window.LayerRightMessageSidebar().send(text="已复制", msg_type=1, fold_after=1500)
+        except:
+            pass
