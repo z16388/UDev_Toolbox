@@ -349,6 +349,34 @@ class CustomPageView(SiDenseHContainer):
             index=page_index  # 传递页面索引，确保按钮索引和页面索引一致
         )
 
+    def clearPages(self):
+        """清空所有页面和按钮（保留视图结构）"""
+        # 先断开 indexChanged 的所有连接，防止旧按钮被触发
+        try:
+            self.page_navigator.indexChanged.disconnect()
+        except TypeError:
+            pass
+
+        # 清空导航栏按钮
+        for btn in self.page_navigator.buttons:
+            btn.hide()
+            btn.setParent(None)
+            btn.deleteLater()
+        self.page_navigator.buttons.clear()
+        self.page_navigator.container_top.widgets_top.clear()
+        self.page_navigator.container_bottom.widgets_top.clear()
+        # 重置导航栏状态到初始值
+        self.page_navigator.maximum_index_ = -1
+        self.page_navigator.current_index_ = -1
+
+        # 清空堆叠容器页面
+        for widget in list(self.stacked_container.widgets):
+            widget.hide()
+            widget.setParent(None)
+            widget.deleteLater()
+        self.stacked_container.widgets.clear()
+        self.stacked_container.current_index_ = -1
+
     def setPage(self, index):
         """设置当前页面"""
         self.stacked_container.setCurrentIndex(index)

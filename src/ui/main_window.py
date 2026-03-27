@@ -15,6 +15,7 @@ from siui.core import SiColor, SiGlobal
 from siui.components.widgets import SiPushButton, SiDenseHContainer
 from siui.templates.application.application import SiliconApplication
 
+from src.core.config_manager import ConfigManager
 from src.ui.pages.page_home import HomePage
 from src.ui.pages.page_apk import APKToolsPage
 from src.ui.pages.page_string import StringToolsPage
@@ -43,6 +44,9 @@ class UDevToolbox(SiliconApplication):
     
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        
+        # 加载配置
+        self.config = ConfigManager()
         
         # 设置无边框窗口
         self.setWindowFlags(Qt.FramelessWindowHint | Qt.Window)
@@ -181,62 +185,41 @@ class UDevToolbox(SiliconApplication):
         # 将新视图添加到container_title_and_content
         self.layerMain().container_title_and_content.addWidget(self.custom_page_view)
         
-        # 添加页面 - 顶部功能页面
-        self.custom_page_view.addPage(
-            HomePage(self),
-            icon=SiGlobal.siui.iconpack.get("ic_fluent_home_filled"),
-            text="主页",
-            side="top"
-        )
+        # 定义页面映射
+        page_map = {
+            "home": (HomePage, "ic_fluent_home_filled", "主页"),
+            "apk": (APKToolsPage, "ic_fluent_phone_filled", "APK分析"),
+            "string": (StringToolsPage, "ic_fluent_text_case_title_filled", "字符串工具"),
+            "file": (FileToolsPage, "ic_fluent_folder_filled", "文件工具"),
+            "unity": (UnityToolsPage, "ic_fluent_cube_filled", "Unity工具"),
+            "network": (NetworkToolsPage, "ic_fluent_globe_filled", "网络工具"),
+            "time": (TimeToolsPage, "ic_fluent_clock_filled", "时间工具"),
+            "wiki": (WikiPage, "ic_fluent_book_filled", "Wiki文档"),
+        }
         
-        self.custom_page_view.addPage(
-            APKToolsPage(self),
-            icon=SiGlobal.siui.iconpack.get("ic_fluent_phone_filled"),
-            text="APK分析",
-            side="top"
-        )
+        # 从配置读取侧边栏页面设置
+        default_pages = [
+            {"name": "主页", "key": "home", "visible": True},
+            {"name": "APK分析", "key": "apk", "visible": True},
+            {"name": "字符串工具", "key": "string", "visible": True},
+            {"name": "文件工具", "key": "file", "visible": True},
+            {"name": "Unity工具", "key": "unity", "visible": True},
+            {"name": "网络工具", "key": "network", "visible": True},
+            {"name": "时间工具", "key": "time", "visible": True},
+            {"name": "Wiki文档", "key": "wiki", "visible": True},
+        ]
+        sidebar_pages = self.config.get('sidebar_pages', default_pages)
         
-        self.custom_page_view.addPage(
-            StringToolsPage(self),
-            icon=SiGlobal.siui.iconpack.get("ic_fluent_text_case_title_filled"),
-            text="字符串工具",
-            side="top"
-        )
-        
-        self.custom_page_view.addPage(
-            FileToolsPage(self),
-            icon=SiGlobal.siui.iconpack.get("ic_fluent_folder_filled"),
-            text="文件工具",
-            side="top"
-        )
-        
-        self.custom_page_view.addPage(
-            UnityToolsPage(self),
-            icon=SiGlobal.siui.iconpack.get("ic_fluent_cube_filled"),
-            text="Unity工具",
-            side="top"
-        )
-        
-        self.custom_page_view.addPage(
-            NetworkToolsPage(self),
-            icon=SiGlobal.siui.iconpack.get("ic_fluent_globe_filled"),
-            text="网络工具",
-            side="top"
-        )
-        
-        self.custom_page_view.addPage(
-            TimeToolsPage(self),
-            icon=SiGlobal.siui.iconpack.get("ic_fluent_clock_filled"),
-            text="时间工具",
-            side="top"
-        )
-        
-        self.custom_page_view.addPage(
-            WikiPage(self),
-            icon=SiGlobal.siui.iconpack.get("ic_fluent_book_filled"),
-            text="Wiki文档",
-            side="top"
-        )
+        # 根据配置添加页面
+        for page_config in sidebar_pages:
+            if page_config.get('visible', True) and page_config['key'] in page_map:
+                page_class, icon_key, page_name = page_map[page_config['key']]
+                self.custom_page_view.addPage(
+                    page_class(self),
+                    icon=SiGlobal.siui.iconpack.get(icon_key),
+                    text=page_config.get('name', page_name),
+                    side="top"
+                )
         
         # 添加页面 - 底部设置页面
         self.custom_page_view.addPage(
@@ -248,6 +231,65 @@ class UDevToolbox(SiliconApplication):
         
         # 默认显示主页
         self.custom_page_view.setPage(0)
+    
+    def reload_sidebar(self):
+        """重新加载侧边栏（应用设置后立即生效）"""
+        from siui.core import SiGlobal
+        
+        # 清空现有页面和按钮
+        self.custom_page_view.clearPages()
+        
+        # 定义页面映射
+        page_map = {
+            "home": (HomePage, "ic_fluent_home_filled", "主页"),
+            "apk": (APKToolsPage, "ic_fluent_phone_filled", "APK分析"),
+            "string": (StringToolsPage, "ic_fluent_text_case_title_filled", "字符串工具"),
+            "file": (FileToolsPage, "ic_fluent_folder_filled", "文件工具"),
+            "unity": (UnityToolsPage, "ic_fluent_cube_filled", "Unity工具"),
+            "network": (NetworkToolsPage, "ic_fluent_globe_filled", "网络工具"),
+            "time": (TimeToolsPage, "ic_fluent_clock_filled", "时间工具"),
+            "wiki": (WikiPage, "ic_fluent_book_filled", "Wiki文档"),
+        }
+        
+        # 从配置读取侧边栏页面设置
+        default_pages = [
+            {"name": "主页", "key": "home", "visible": True},
+            {"name": "APK分析", "key": "apk", "visible": True},
+            {"name": "字符串工具", "key": "string", "visible": True},
+            {"name": "文件工具", "key": "file", "visible": True},
+            {"name": "Unity工具", "key": "unity", "visible": True},
+            {"name": "网络工具", "key": "network", "visible": True},
+            {"name": "时间工具", "key": "time", "visible": True},
+            {"name": "Wiki文档", "key": "wiki", "visible": True},
+        ]
+        sidebar_pages = self.config.get('sidebar_pages', default_pages)
+        
+        # 按配置重新添加功能页面
+        for page_config in sidebar_pages:
+            if page_config.get('visible', True) and page_config['key'] in page_map:
+                page_class, icon_key, page_name = page_map[page_config['key']]
+                self.custom_page_view.addPage(
+                    page_class(self),
+                    icon=SiGlobal.siui.iconpack.get(icon_key),
+                    text=page_config.get('name', page_name),
+                    side="top"
+                )
+        
+        # 重新添加设置页面
+        self.custom_page_view.addPage(
+            SettingsPage(self),
+            icon=SiGlobal.siui.iconpack.get("ic_fluent_settings_filled"),
+            text="设置",
+            side="bottom"
+        )
+        
+        # 跳转到设置页（最后一个）
+        self.custom_page_view.setPage(self.custom_page_view.stacked_container.widgetsAmount() - 1)
+        
+        # 触发一次 resize 刷新导航栏布局
+        nav = self.custom_page_view.page_navigator
+        nav.resize(nav.width(), nav.height() + 1)
+        nav.resize(nav.width(), nav.height() - 1)
     
     def mousePressEvent(self, event):
         """鼠标按下事件 - 用于窗口拖动"""

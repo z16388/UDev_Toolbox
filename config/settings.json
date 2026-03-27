@@ -35,5 +35,47 @@
   "network_settings": {
     "timeout": 30,
     "verify_ssl": false
-  }
+  },
+  "sidebar_pages": [
+    {
+      "name": "主页",
+      "key": "home",
+      "visible": true
+    },
+    {
+      "name": "APK分析",
+      "key": "apk",
+      "visible": true
+    },
+    {
+      "name": "字符串工具",
+      "key": "string",
+      "visible": true
+    },
+    {
+      "name": "文件工具",
+      "key": "file",
+      "visible": true
+    },
+    {
+      "name": "Unity工具",
+      "key": "unity",
+      "visible": true
+    },
+    {
+      "name": "网络工具",
+      "key": "network",
+      "visible": true
+    },
+    {
+      "name": "时间工具",
+      "key": "time",
+      "visible": true
+    },
+    {
+      "name": "Wiki文档",
+      "key": "wiki",
+      "visible": true
+    }
+  ]
 }

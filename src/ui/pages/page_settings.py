@@ -47,9 +47,9 @@ class SettingsPage(SiPage):
         self.titled_widget_group.addTitle("关于")
         self.titled_widget_group.addWidget(self._create_about_panel())
         
-        # Git设置
-        self.titled_widget_group.addTitle("Git 同步设置")
-        self.titled_widget_group.addWidget(self._create_git_panel())
+        # 侧边栏设置
+        self.titled_widget_group.addTitle("侧边栏管理")
+        self.titled_widget_group.addWidget(self._create_sidebar_panel())
         
         # APK工具设置
         self.titled_widget_group.addTitle("APK 工具设置")
@@ -98,78 +98,199 @@ class SettingsPage(SiPage):
         
         return panel
     
-    def _create_git_panel(self):
-        """创建Git设置面板"""
-        panel = SiOptionCardPlane(self)
-        panel.setTitle("Wiki Git同步配置")
+    def _create_sidebar_panel(self):
+        """创建侧边栏管理面板"""
+        self.sidebar_panel = SiOptionCardPlane(self)
+        self.sidebar_panel.setTitle("侧边栏按钮显示与排序")
         
-        # 远程仓库URL
-        url_row = SiDenseHContainer(self)
-        url_row.setFixedHeight(36)
-        url_row.setSpacing(8)
+        # 说明文本
+        hint_label = SiLabel(self)
+        hint_label.setSiliconWidgetFlag(Si.AdjustSizeOnTextChanged)
+        hint_label.setStyleSheet(f"color: {SiGlobal.siui.colors['TEXT_C']};")
+        hint_label.setText("勾选显示按钮，取消勾选隐藏按钮。可使用上/下移按钮调整顺序。")
         
-        url_label = SiLabel(self)
-        url_label.setText("仓库URL:")
-        url_label.setFixedWidth(70)
+        self.sidebar_panel.body().addWidget(hint_label)
         
-        self.git_url_edit = SiLineEdit(self)
-        self.git_url_edit.setFixedHeight(32)
-        self.git_url_edit.lineEdit().setPlaceholderText("https://github.com/user/repo.git")
-        self.git_url_edit.lineEdit().setText(self.config.get('git_settings.remote_url', ''))
+        # 获取默认的侧边栏页面配置
+        default_pages = [
+            {"name": "主页", "key": "home", "visible": True},
+            {"name": "APK分析", "key": "apk", "visible": True},
+            {"name": "字符串工具", "key": "string", "visible": True},
+            {"name": "文件工具", "key": "file", "visible": True},
+            {"name": "Unity工具", "key": "unity", "visible": True},
+            {"name": "网络工具", "key": "network", "visible": True},
+            {"name": "时间工具", "key": "time", "visible": True},
+            {"name": "Wiki文档", "key": "wiki", "visible": True},
+        ]
         
-        url_row.addWidget(url_label)
-        url_row.addWidget(self.git_url_edit)
+        # 有效的页面 key 列表
+        valid_keys = {"home", "apk", "string", "file", "unity", "network", "time", "wiki"}
         
-        # 分支
-        branch_row = SiDenseHContainer(self)
-        branch_row.setFixedHeight(36)
-        branch_row.setSpacing(8)
+        # 从配置中读取当前设置
+        saved_config = self.config.get('sidebar_pages', default_pages)
+        # 过滤掉无效的页面配置
+        if saved_config:
+            self.sidebar_pages = [page for page in saved_config if page.get("key") in valid_keys]
+        else:
+            self.sidebar_pages = default_pages
         
-        branch_label = SiLabel(self)
-        branch_label.setText("分支:")
-        branch_label.setFixedWidth(70)
+        # 如果过滤后为空，使用默认配置
+        if not self.sidebar_pages:
+            self.sidebar_pages = default_pages
         
-        self.git_branch_edit = SiLineEdit(self)
-        self.git_branch_edit.setFixedSize(150, 32)
-        self.git_branch_edit.lineEdit().setText(self.config.get('git_settings.branch', 'main'))
+        # 初始化页面项列表容器
+        self._init_page_items_container()
         
-        auto_sync_label = SiLabel(self)
-        auto_sync_label.setText("自动同步:")
-        
-        self.auto_sync_switch = SiSwitch(self)
-        self.auto_sync_switch.setFixedHeight(32)
-        self.auto_sync_switch.setChecked(self.config.get('git_settings.auto_sync', False))
-        
-        branch_row.addWidget(branch_label)
-        branch_row.addWidget(self.git_branch_edit)
-        branch_row.addWidget(auto_sync_label)
-        branch_row.addWidget(self.auto_sync_switch)
-        
-        # 操作按钮
-        action_row = SiDenseHContainer(self)
-        action_row.setFixedHeight(36)
-        action_row.setSpacing(8)
+        # 保存按钮
+        save_row = SiDenseHContainer(self)
+        save_row.setFixedHeight(36)
+        save_row.setSpacing(8)
         
         save_btn = SiPushButton(self)
         save_btn.resize(100, 32)
         save_btn.setUseTransition(True)
         save_btn.attachment().setText("保存设置")
-        save_btn.clicked.connect(self._save_git_settings)
+        save_btn.clicked.connect(self._save_sidebar_settings)
         
-        sync_btn = SiPushButton(self)
-        sync_btn.resize(100, 32)
-        sync_btn.attachment().setText("立即同步")
-        sync_btn.clicked.connect(self._sync_wiki)
+        reset_btn = SiPushButton(self)
+        reset_btn.resize(100, 32)
+        reset_btn.attachment().setText("恢复默认")
+        reset_btn.clicked.connect(self._reset_sidebar_settings)
         
-        action_row.addWidget(save_btn)
-        action_row.addWidget(sync_btn)
+        save_row.addWidget(save_btn)
+        save_row.addWidget(reset_btn)
         
-        panel.body().addWidget(url_row)
-        panel.body().addWidget(branch_row)
-        panel.body().addWidget(action_row)
-        panel.adjustSize()
+        self.sidebar_panel.body().addWidget(save_row)
+        self.sidebar_panel.adjustSize()
         
-        return panel
+        return self.sidebar_panel
+    
+    def _init_page_items_container(self):
+        """初始化页面项列表容器"""
+        # 创建新的页面项列表容器
+        self.page_items_container = SiDenseVContainer(self)
+        self.page_items_container.setSpacing(4)
+        
+        self.page_items = []
+        for page_data in self.sidebar_pages:
+            item_row = self._create_page_item(page_data)
+            self.page_items.append({"row": item_row, "data": page_data})
+            self.page_items_container.addWidget(item_row)
+        
+        # 直接添加到面板body
+        self.sidebar_panel.body().addWidget(self.page_items_container)
+    
+    def _create_page_item(self, page_data):
+        """创建单个页面项"""
+        row = SiDenseHContainer(self)
+        row.setFixedHeight(40)
+        row.setSpacing(8)
+        
+        # 复选框
+        switch = SiSwitch(self)
+        switch.setFixedSize(48, 32)
+        switch.setChecked(page_data.get("visible", True))
+        switch.toggled.connect(lambda checked: page_data.update({"visible": checked}))
+        
+        # 页面名称
+        name_label = SiLabel(self)
+        name_label.setText(page_data["name"])
+        name_label.setFixedWidth(120)
+        
+        # 上移按钮
+        up_btn = SiPushButton(self)
+        up_btn.resize(60, 32)
+        up_btn.attachment().setText("上移")
+        up_btn.clicked.connect(lambda: self._move_page_up(page_data))
+        
+        # 下移按钮
+        down_btn = SiPushButton(self)
+        down_btn.resize(60, 32)
+        down_btn.attachment().setText("下移")
+        down_btn.clicked.connect(lambda: self._move_page_down(page_data))
+        
+        row.addWidget(switch)
+        row.addWidget(name_label)
+        row.addWidget(up_btn)
+        row.addWidget(down_btn)
+        
+        return row
+    
+    def _move_page_up(self, page_data):
+        """上移页面"""
+        index = next((i for i, data in enumerate(self.sidebar_pages) if data == page_data), -1)
+        if index > 0:
+            # 交换数据
+            self.sidebar_pages[index], self.sidebar_pages[index - 1] = self.sidebar_pages[index - 1], self.sidebar_pages[index]
+            # 直接交换容器内部列表和page_items的顺序
+            self.page_items[index], self.page_items[index - 1] = self.page_items[index - 1], self.page_items[index]
+            self.page_items_container.widgets_top[index], self.page_items_container.widgets_top[index - 1] = \
+                self.page_items_container.widgets_top[index - 1], self.page_items_container.widgets_top[index]
+            # 重新排列位置
+            self.page_items_container.arrangeWidget()
+    
+    def _move_page_down(self, page_data):
+        """下移页面"""
+        index = next((i for i, data in enumerate(self.sidebar_pages) if data == page_data), -1)
+        if index >= 0 and index < len(self.sidebar_pages) - 1:
+            # 交换数据
+            self.sidebar_pages[index], self.sidebar_pages[index + 1] = self.sidebar_pages[index + 1], self.sidebar_pages[index]
+            # 直接交换容器内部列表和page_items的顺序
+            self.page_items[index], self.page_items[index + 1] = self.page_items[index + 1], self.page_items[index]
+            self.page_items_container.widgets_top[index], self.page_items_container.widgets_top[index + 1] = \
+                self.page_items_container.widgets_top[index + 1], self.page_items_container.widgets_top[index]
+            # 重新排列位置
+            self.page_items_container.arrangeWidget()
+    
+    def _refresh_page_items(self):
+        """刷新页面项列表（用于重置时重建）"""
+        # 移除所有旧控件
+        for item in self.page_items:
+            self.page_items_container.removeWidget(item["row"])
+            item["row"].hide()
+            item["row"].deleteLater()
+        self.page_items.clear()
+        
+        # 按新顺序重新创建并添加
+        for page_data in self.sidebar_pages:
+            item_row = self._create_page_item(page_data)
+            self.page_items.append({"row": item_row, "data": page_data})
+            self.page_items_container.addWidget(item_row)
+        
+        self.page_items_container.adjustSize()
+    
+    def _save_sidebar_settings(self):
+        """保存侧边栏设置"""
+        self.config.set('sidebar_pages', self.sidebar_pages)
+        self._show_message("侧边栏设置已保存，重启应用后生效")
+    
+    def _reset_sidebar_settings(self):
+        """重置侧边栏设置（带二次确认）"""
+        from PyQt5.QtWidgets import QMessageBox
+        reply = QMessageBox.question(
+            self,
+            "确认恢复默认",
+            "确定要恢复侧边栏的默认设置吗？",
+            QMessageBox.Yes | QMessageBox.No,
+            QMessageBox.No
+        )
+        if reply != QMessageBox.Yes:
+            return
+        
+        default_pages = [
+            {"name": "主页", "key": "home", "visible": True},
+            {"name": "APK分析", "key": "apk", "visible": True},
+            {"name": "字符串工具", "key": "string", "visible": True},
+            {"name": "文件工具", "key": "file", "visible": True},
+            {"name": "Unity工具", "key": "unity", "visible": True},
+            {"name": "网络工具", "key": "network", "visible": True},
+            {"name": "时间工具", "key": "time", "visible": True},
+            {"name": "Wiki文档", "key": "wiki", "visible": True},
+        ]
+        self.sidebar_pages = default_pages
+        self.config.set('sidebar_pages', self.sidebar_pages)
+        self._refresh_page_items()
+        self._show_message("已恢复默认侧边栏设置，重启应用后生效")
     
     def _create_apk_panel(self):
         """创建APK设置面板"""
@@ -312,15 +433,6 @@ class SettingsPage(SiPage):
         return panel
     
     # 功能方法
-    def _save_git_settings(self):
-        self.config.set('git_settings.remote_url', self.git_url_edit.lineEdit().text())
-        self.config.set('git_settings.branch', self.git_branch_edit.lineEdit().text())
-        self.config.set('git_settings.auto_sync', self.auto_sync_switch.isChecked())
-        self._show_message("Git设置已保存")
-    
-    def _sync_wiki(self):
-        self._show_message("Wiki同步功能开发中...", msg_type=2)
-    
     def _browse_aapt(self):
         from PyQt5.QtWidgets import QFileDialog
         file_path, _ = QFileDialog.getOpenFileName(
