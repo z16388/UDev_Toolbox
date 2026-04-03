@@ -35,6 +35,9 @@ class ConfigManager:
         'network_settings': {
             'timeout': 30,
             'verify_ssl': False,
+        },
+        'string_settings': {
+            'combo_template': '{UL:8}-{D:4}-{D:4}\n订单号:{U:4}{N:10000-99999}\n会员卡:{N:100000-999999}',
         }
     }
     

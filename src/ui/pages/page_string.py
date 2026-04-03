@@ -1,18 +1,21 @@
 ﻿#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 """字符串工具页面"""
-from PyQt5.QtWidgets import QApplication
+from PyQt5.QtCore import QTimer
+from PyQt5.QtWidgets import QApplication, QTextEdit
 from siui.components.option_card import SiOptionCardPlane
 from siui.components.page import SiPage
 from siui.components.titled_widget_group import SiTitledWidgetGroup
 from siui.components.widgets import SiDenseHContainer, SiLabel, SiLineEdit, SiPushButton, SiSwitch
 from siui.core import Si, SiGlobal
 from src.core.string_utils import StringUtils
+from src.core.config_manager import ConfigManager
 from src.ui.components.copyable_text import CopyableTextArea
 
 class StringToolsPage(SiPage):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.config = ConfigManager()
         self.scroll_container = SiTitledWidgetGroup(self)
         self.body_area = SiLabel(self)
         self.body_area.setSiliconWidgetFlag(Si.EnableAnimationSignals)
@@ -24,16 +27,8 @@ class StringToolsPage(SiPage):
         self.titled_widget_group.setSpacing(16)
         self.titled_widget_group.addTitle("随机字符串生成")
         self.titled_widget_group.addWidget(self._create_random_string_panel())
-        self.titled_widget_group.addTitle("GUID / UUID 生成")
-        self.titled_widget_group.addWidget(self._create_guid_panel())
-        self.titled_widget_group.addTitle("Base64 编解码")
-        self.titled_widget_group.addWidget(self._create_base64_panel())
-        self.titled_widget_group.addTitle("URL 编解码")
-        self.titled_widget_group.addWidget(self._create_url_panel())
-        self.titled_widget_group.addTitle("JSON 格式化")
-        self.titled_widget_group.addWidget(self._create_json_panel())
-        self.titled_widget_group.addTitle("正则表达式测试")
-        self.titled_widget_group.addWidget(self._create_regex_panel())
+        self.titled_widget_group.addTitle("随机字符串组合生成")
+        self.titled_widget_group.addWidget(self._create_combo_string_panel())
         self.titled_widget_group.addTitle("字符串哈希计算")
         self.titled_widget_group.addWidget(self._create_hash_panel())
         self.titled_widget_group.addPlaceholder(64)
@@ -44,6 +39,8 @@ class StringToolsPage(SiPage):
     def _create_random_string_panel(self):
         panel = SiOptionCardPlane(self)
         panel.setTitle("生成随机字符串")
+        
+        # 长度和数量输入行
         length_row = SiDenseHContainer(self)
         length_row.setFixedHeight(40)
         length_row.setSpacing(12)
@@ -58,7 +55,6 @@ class StringToolsPage(SiPage):
         count_label = SiLabel(self)
         count_label.setText("数量:")
         count_label.setFixedWidth(50)
-        text_color = SiGlobal.siui.colors['TEXT_A']
         count_label.setStyleSheet(f"color: {text_color};")
         self.random_count_edit = SiLineEdit(self)
         self.random_count_edit.setFixedSize(120, 36)
@@ -67,41 +63,82 @@ class StringToolsPage(SiPage):
         length_row.addWidget(self.random_length_edit)
         length_row.addWidget(count_label)
         length_row.addWidget(self.random_count_edit)
-        options_row = SiDenseHContainer(self)
-        options_row.setFixedHeight(40)
-        options_row.setSpacing(16)
+        
+        # 字符类型选项 - 垂直排列
+        # 第一行：大写字母和小写字母
+        options_row1 = SiDenseHContainer(self)
+        options_row1.setFixedHeight(40)
+        options_row1.setSpacing(16)
+        uppercase_label = SiLabel(self)
+        uppercase_label.setText("大写字母")
+        uppercase_label.setFixedWidth(80)
+        uppercase_label.setStyleSheet(f"color: {text_color};")
         self.use_uppercase = SiSwitch(self)
         self.use_uppercase.setFixedHeight(32)
         self.use_uppercase.setChecked(True)
-        text_color = SiGlobal.siui.colors['TEXT_A']
-        uppercase_label = SiLabel(self)
-        uppercase_label.setText("大写字母")
-        uppercase_label.setStyleSheet(f"color: {text_color};")
+        lowercase_label = SiLabel(self)
+        lowercase_label.setText("小写字母")
+        lowercase_label.setFixedWidth(80)
+        lowercase_label.setStyleSheet(f"color: {text_color};")
         self.use_lowercase = SiSwitch(self)
         self.use_lowercase.setFixedHeight(32)
         self.use_lowercase.setChecked(True)
-        lowercase_label = SiLabel(self)
-        lowercase_label.setText("小写字母")
-        lowercase_label.setStyleSheet(f"color: {text_color};")
+        options_row1.addWidget(uppercase_label)
+        options_row1.addWidget(self.use_uppercase)
+        options_row1.addWidget(lowercase_label)
+        options_row1.addWidget(self.use_lowercase)
+        
+        # 第二行：数字和特殊符号
+        options_row2 = SiDenseHContainer(self)
+        options_row2.setFixedHeight(40)
+        options_row2.setSpacing(16)
+        digits_label = SiLabel(self)
+        digits_label.setText("数字")
+        digits_label.setFixedWidth(80)
+        digits_label.setStyleSheet(f"color: {text_color};")
         self.use_digits = SiSwitch(self)
         self.use_digits.setFixedHeight(32)
         self.use_digits.setChecked(True)
-        digits_label = SiLabel(self)
-        digits_label.setText("数字")
-        digits_label.setStyleSheet(f"color: {text_color};")
-        self.use_special = SiSwitch(self)
-        self.use_special.setFixedHeight(32)
         special_label = SiLabel(self)
         special_label.setText("特殊符号")
+        special_label.setFixedWidth(80)
         special_label.setStyleSheet(f"color: {text_color};")
-        options_row.addWidget(uppercase_label)
-        options_row.addWidget(self.use_uppercase)
-        options_row.addWidget(lowercase_label)
-        options_row.addWidget(self.use_lowercase)
-        options_row.addWidget(digits_label)
-        options_row.addWidget(self.use_digits)
-        options_row.addWidget(special_label)
-        options_row.addWidget(self.use_special)
+        self.use_special = SiSwitch(self)
+        self.use_special.setFixedHeight(32)
+        options_row2.addWidget(digits_label)
+        options_row2.addWidget(self.use_digits)
+        options_row2.addWidget(special_label)
+        options_row2.addWidget(self.use_special)
+        
+        # 第三行：数字范围（仅当只使用数字时有效）
+        number_range_row = SiDenseHContainer(self)
+        number_range_row.setFixedHeight(40)
+        number_range_row.setSpacing(12)
+        range_label = SiLabel(self)
+        range_label.setText("数字范围:")
+        range_label.setFixedWidth(80)
+        range_label.setStyleSheet(f"color: {text_color};")
+        self.number_min_edit = SiLineEdit(self)
+        self.number_min_edit.setFixedSize(100, 36)
+        self.number_min_edit.lineEdit().setPlaceholderText("最小值")
+        range_separator = SiLabel(self)
+        range_separator.setText("-")
+        range_separator.setStyleSheet(f"color: {text_color};")
+        range_separator.setFixedWidth(20)
+        self.number_max_edit = SiLineEdit(self)
+        self.number_max_edit.setFixedSize(100, 36)
+        self.number_max_edit.lineEdit().setPlaceholderText("最大值")
+        range_hint = SiLabel(self)
+        range_hint.setText("(仅当只选择数字时生效)")
+        range_hint.setStyleSheet(f"color: {SiGlobal.siui.colors['TEXT_B']}; font-size: 11px;")
+        number_range_row.addWidget(range_label)
+        number_range_row.addWidget(self.number_min_edit)
+        number_range_row.addWidget(range_separator)
+        number_range_row.addWidget(self.number_max_edit)
+        number_range_row.addWidget(range_hint)
+        
+        # 生成按钮
+        
         action_row = SiDenseHContainer(self)
         action_row.setFixedHeight(40)
         generate_btn = SiPushButton(self)
@@ -110,153 +147,133 @@ class StringToolsPage(SiPage):
         generate_btn.attachment().setText("生成")
         generate_btn.clicked.connect(self._generate_random_string)
         action_row.addWidget(generate_btn)
-        self.random_result = CopyableTextArea(self, monospace=True, min_height=60, max_height=150)
+        
+        # 结果显示区域 - 自动扩展
+        self.random_result = CopyableTextArea(self, monospace=True, auto_expand=True)
         self.random_result.setText("点击生成按钮生成随机字符串")
+        
+        panel.body().setAdjustWidgetsSize(True)
         panel.body().addWidget(length_row)
-        panel.body().addWidget(options_row)
+        panel.body().addWidget(options_row1)
+        panel.body().addWidget(options_row2)
+        panel.body().addWidget(number_range_row)
         panel.body().addWidget(action_row)
         panel.body().addWidget(self.random_result)
         panel.adjustSize()
+        self.random_panel = panel  # 保存引用以便后续调整布局
         return panel
 
-    def _create_guid_panel(self):
+    def _create_combo_string_panel(self):
         panel = SiOptionCardPlane(self)
-        panel.setTitle("生成GUID/UUID (Unity常用)")
+        panel.setTitle("生成自定义格式的字符串组合")
+        text_color = SiGlobal.siui.colors['TEXT_A']
+        hint_color = SiGlobal.siui.colors['TEXT_B']
+        bg_color = SiGlobal.siui.colors['INTERFACE_BG_D']
+        border_color = SiGlobal.siui.colors['INTERFACE_BG_D']
+        
+        # 标签行
+        label_row = SiDenseHContainer(self)
+        label_row.setFixedHeight(28)
+        label_row.setSpacing(12)
+        pattern_label = SiLabel(self)
+        pattern_label.setText("格式模板 (每行一个模式):")
+        pattern_label.setStyleSheet(f"color: {text_color}; font-weight: bold;")
+        label_row.addWidget(pattern_label)
+        
+        # 多行模板输入框
+        self.combo_template_edit = QTextEdit(self)
+        self.combo_template_edit.setFixedHeight(120)
+        self.combo_template_edit.setPlaceholderText("每行一个格式，如:\n{UL:8}-{D:4}\n订单号:{U:4}{N:10000-99999}\n{N:100-999}")
+        # 从配置加载模板
+        saved_template = self.config.get('string_settings', {}).get('combo_template', '{UL:8}-{D:4}-{D:4}\n订单号:{U:4}{N:10000-99999}\n会员卡:{N:100000-999999}')
+        self.combo_template_edit.setPlainText(saved_template)
+        self.combo_template_edit.setStyleSheet(
+            f"QTextEdit {{ background-color: {bg_color}; color: {text_color}; "
+            f"border: 1px solid {border_color}; border-radius: 6px; padding: 8px; "
+            f"font-family: Consolas, monospace; font-size: 13px; }}"
+        )
+        # 监听文本变化以保存配置
+        self.combo_template_edit.textChanged.connect(self._save_combo_template)
+        
+        # 占位符说明（第一组）
+        hint_row1 = SiDenseHContainer(self)
+        hint_row1.setFixedHeight(28)
+        hint_row1.setSpacing(8)
+        hint_label1 = SiLabel(self)
+        hint_label1.setText("占位符:")
+        hint_label1.setFixedWidth(80)
+        hint_label1.setStyleSheet(f"color: {text_color}; font-weight: bold;")
+        hint_text1 = SiLabel(self)
+        hint_text1.setText("U=大写字母  L=小写字母  D=十进制数字  S=特殊符号")
+        hint_text1.setStyleSheet(f"color: {hint_color}; font-size: 12px;")
+        hint_row1.addWidget(hint_label1)
+        hint_row1.addWidget(hint_text1)
+        
+        # 占位符说明（第二组）
+        hint_row2 = SiDenseHContainer(self)
+        hint_row2.setFixedHeight(28)
+        hint_row2.setSpacing(8)
+        hint_spacer = SiLabel(self)
+        hint_spacer.setFixedWidth(80)
+        hint_text2 = SiLabel(self)
+        hint_text2.setText("O=八进制数字  H=大写十六进制  h=小写十六进制")
+        hint_text2.setStyleSheet(f"color: {hint_color}; font-size: 12px;")
+        hint_row2.addWidget(hint_spacer)
+        hint_row2.addWidget(hint_text2)
+        
+        # 扩展格式说明
+        hint_row3 = SiDenseHContainer(self)
+        hint_row3.setFixedHeight(28)
+        hint_row3.setSpacing(8)
+        hint_label3 = SiLabel(self)
+        hint_label3.setText("扩展格式:")
+        hint_label3.setFixedWidth(80)
+        hint_label3.setStyleSheet(f"color: {text_color}; font-weight: bold;")
+        hint_text3 = SiLabel(self)
+        hint_text3.setText("{类型:长度} 如: {UL:8}=8个大小写混合  {N:min-max} 如: {N:100-999}=100到999的数字")
+        hint_text3.setStyleSheet(f"color: {hint_color}; font-size: 12px;")
+        hint_row3.addWidget(hint_label3)
+        hint_row3.addWidget(hint_text3)
+        
+        # 示例说明
+        example_row = SiDenseHContainer(self)
+        example_row.setFixedHeight(28)
+        example_row.setSpacing(8)
+        example_label = SiLabel(self)
+        example_label.setText("示例:")
+        example_label.setFixedWidth(80)
+        example_label.setStyleSheet(f"color: {text_color}; font-weight: bold;")
+        example_text = SiLabel(self)
+        example_text.setText("{UL:8}-{D:4} → aBcD-1234   {N:100-999} → 567   订单:{U:4}{N:10000-99999} → 订单:ABCD45678")
+        example_text.setStyleSheet(f"color: {hint_color}; font-size: 12px;")
+        example_row.addWidget(example_label)
+        example_row.addWidget(example_text)
+        
+        # 生成按钮
         action_row = SiDenseHContainer(self)
         action_row.setFixedHeight(40)
-        action_row.setSpacing(12)
-        guid_btn = SiPushButton(self)
-        guid_btn.resize(140, 36)
-        guid_btn.setUseTransition(True)
-        guid_btn.attachment().setText("生成GUID")
-        guid_btn.clicked.connect(self._generate_guid)
-        uuid_btn = SiPushButton(self)
-        uuid_btn.resize(140, 36)
-        uuid_btn.attachment().setText("生成UUID")
-        uuid_btn.clicked.connect(self._generate_uuid)
-        action_row.addWidget(guid_btn)
-        action_row.addWidget(uuid_btn)
-        self.guid_result = CopyableTextArea(self, monospace=True, min_height=40, max_height=80)
-        self.guid_result.setText("点击按钮生成")
-        panel.body().addWidget(action_row)
-        panel.body().addWidget(self.guid_result)
-        panel.adjustSize()
-        return panel
-
-    def _create_base64_panel(self):
-        panel = SiOptionCardPlane(self)
-        panel.setTitle("Base64 编码/解码")
-        self.base64_input = SiLineEdit(self)
-        self.base64_input.setFixedHeight(36)
-        self.base64_input.lineEdit().setPlaceholderText("输入文本...")
-        action_row = SiDenseHContainer(self)
-        action_row.setFixedHeight(40)
-        action_row.setSpacing(12)
-        encode_btn = SiPushButton(self)
-        encode_btn.resize(100, 36)
-        encode_btn.attachment().setText("编码")
-        encode_btn.clicked.connect(self._base64_encode)
-        decode_btn = SiPushButton(self)
-        decode_btn.resize(100, 36)
-        decode_btn.attachment().setText("解码")
-        decode_btn.clicked.connect(self._base64_decode)
-        action_row.addWidget(encode_btn)
-        action_row.addWidget(decode_btn)
-        self.base64_result = CopyableTextArea(self, monospace=True, min_height=60, max_height=150)
-        self.base64_result.setText("-")
+        generate_btn = SiPushButton(self)
+        generate_btn.resize(120, 36)
+        generate_btn.setUseTransition(True)
+        generate_btn.attachment().setText("生成")
+        generate_btn.clicked.connect(self._generate_combo_string)
+        action_row.addWidget(generate_btn)
+        
+        # 结果显示区域 - 自动扩展
+        self.combo_result = CopyableTextArea(self, monospace=True, auto_expand=True)
+        self.combo_result.setText("点击生成按钮生成字符串组合\n\n提示: 使用 {类型:长度} 格式灵活定义每个部分")
+        
         panel.body().setAdjustWidgetsSize(True)
-        panel.body().addWidget(self.base64_input)
+        panel.body().addWidget(label_row)
+        panel.body().addWidget(self.combo_template_edit)
+        panel.body().addWidget(hint_row1)
+        panel.body().addWidget(hint_row2)
+        panel.body().addWidget(hint_row3)
+        panel.body().addWidget(example_row)
         panel.body().addWidget(action_row)
-        panel.body().addWidget(self.base64_result)
+        panel.body().addWidget(self.combo_result)
         panel.adjustSize()
-        return panel
-
-    def _create_url_panel(self):
-        panel = SiOptionCardPlane(self)
-        panel.setTitle("URL 编码/解码")
-        self.url_input = SiLineEdit(self)
-        self.url_input.setFixedHeight(36)
-        self.url_input.lineEdit().setPlaceholderText("输入URL或文本...")
-        action_row = SiDenseHContainer(self)
-        action_row.setFixedHeight(40)
-        action_row.setSpacing(12)
-        encode_btn = SiPushButton(self)
-        encode_btn.resize(100, 36)
-        encode_btn.attachment().setText("编码")
-        encode_btn.clicked.connect(self._url_encode)
-        decode_btn = SiPushButton(self)
-        decode_btn.resize(100, 36)
-        decode_btn.attachment().setText("解码")
-        decode_btn.clicked.connect(self._url_decode)
-        action_row.addWidget(encode_btn)
-        action_row.addWidget(decode_btn)
-        self.url_result = CopyableTextArea(self, monospace=False, min_height=60, max_height=150)
-        self.url_result.setText("-")
-        panel.body().setAdjustWidgetsSize(True)
-        panel.body().addWidget(self.url_input)
-        panel.body().addWidget(action_row)
-        panel.body().addWidget(self.url_result)
-        panel.adjustSize()
-        return panel
-
-    def _create_json_panel(self):
-        panel = SiOptionCardPlane(self)
-        panel.setTitle("JSON 格式化/压缩")
-        self.json_input = SiLineEdit(self)
-        self.json_input.setFixedHeight(36)
-        self.json_input.lineEdit().setPlaceholderText("输入JSON字符串...")
-        action_row = SiDenseHContainer(self)
-        action_row.setFixedHeight(40)
-        action_row.setSpacing(12)
-        format_btn = SiPushButton(self)
-        format_btn.resize(100, 36)
-        format_btn.attachment().setText("格式化")
-        format_btn.clicked.connect(self._json_format)
-        minify_btn = SiPushButton(self)
-        minify_btn.resize(100, 36)
-        minify_btn.attachment().setText("压缩")
-        minify_btn.clicked.connect(self._json_minify)
-        validate_btn = SiPushButton(self)
-        validate_btn.resize(100, 36)
-        validate_btn.attachment().setText("验证")
-        validate_btn.clicked.connect(self._json_validate)
-        action_row.addWidget(format_btn)
-        action_row.addWidget(minify_btn)
-        action_row.addWidget(validate_btn)
-        self.json_result = CopyableTextArea(self, monospace=True, min_height=80, max_height=200)
-        self.json_result.setText("-")
-        panel.body().setAdjustWidgetsSize(True)
-        panel.body().addWidget(self.json_input)
-        panel.body().addWidget(action_row)
-        panel.body().addWidget(self.json_result)
-        panel.adjustSize()
-        return panel
-
-    def _create_regex_panel(self):
-        panel = SiOptionCardPlane(self)
-        panel.setTitle("正则表达式测试")
-        self.regex_pattern = SiLineEdit(self)
-        self.regex_pattern.setFixedHeight(36)
-        self.regex_pattern.lineEdit().setPlaceholderText("输入正则表达式...")
-        self.regex_text = SiLineEdit(self)
-        self.regex_text.setFixedHeight(36)
-        self.regex_text.lineEdit().setPlaceholderText("输入测试文本...")
-        action_row = SiDenseHContainer(self)
-        action_row.setFixedHeight(40)
-        test_btn = SiPushButton(self)
-        test_btn.resize(100, 36)
-        test_btn.setUseTransition(True)
-        test_btn.attachment().setText("测试")
-        test_btn.clicked.connect(self._regex_test)
-        action_row.addWidget(test_btn)
-        self.regex_result = CopyableTextArea(self, monospace=False, min_height=60, max_height=150)
-        self.regex_result.setText("-")
-        panel.body().setAdjustWidgetsSize(True)
-        panel.body().addWidget(self.regex_pattern)
-        panel.body().addWidget(self.regex_text)
-        panel.body().addWidget(action_row)
-        panel.body().addWidget(self.regex_result)
-        panel.adjustSize()
+        self.combo_panel = panel  # 保存引用以便后续调整布局
         return panel
 
     def _create_hash_panel(self):
@@ -286,37 +303,75 @@ class StringToolsPage(SiPage):
         try:
             length = int(self.random_length_edit.lineEdit().text() or "16")
             count = int(self.random_count_edit.lineEdit().text() or "1")
-            results = StringUtils.generate_multiple_strings(count=count, length=length, use_uppercase=self.use_uppercase.isChecked(), use_lowercase=self.use_lowercase.isChecked(), use_digits=self.use_digits.isChecked(), use_special=self.use_special.isChecked())
+            
+            # 获取数字范围（如果设置了）
+            number_min = None
+            number_max = None
+            min_text = self.number_min_edit.lineEdit().text().strip()
+            max_text = self.number_max_edit.lineEdit().text().strip()
+            if min_text and max_text:
+                try:
+                    number_min = int(min_text)
+                    number_max = int(max_text)
+                except ValueError:
+                    pass  # 如果转换失败，忽略范围
+            
+            results = StringUtils.generate_multiple_strings(
+                count=count, 
+                length=length, 
+                use_uppercase=self.use_uppercase.isChecked(), 
+                use_lowercase=self.use_lowercase.isChecked(), 
+                use_digits=self.use_digits.isChecked(), 
+                use_special=self.use_special.isChecked(),
+                number_min=number_min,
+                number_max=number_max
+            )
             self.random_result.setText("\n".join(results))
-        except Exception as e: self.random_result.setText(f"错误: {e}")
+            # 使用短延迟确保 setText 和 updateGeometry 已生效
+            QTimer.singleShot(10, self._update_layout)
+        except Exception as e: 
+            self.random_result.setText(f"错误: {e}")
+            QTimer.singleShot(10, self._update_layout)
+    
+    def _generate_combo_string(self):
+        """生成字符串组合"""
+        try:
+            template = self.combo_template_edit.toPlainText() or "{UL:8}-{D:4}-{D:4}"
+            
+            result = StringUtils.generate_combo_strings(template=template)
+            self.combo_result.setText(result)
+            # 使用短延迟确保 setText 和 updateGeometry 已生效
+            QTimer.singleShot(10, self._update_layout_combo)
+        except Exception as e:
+            self.combo_result.setText(f"错误: {e}")
+            QTimer.singleShot(10, self._update_layout_combo)
+    
+    def _save_combo_template(self):
+        """保存组合字符串模板到配置"""
+        template = self.combo_template_edit.toPlainText()
+        if 'string_settings' not in self.config.config:
+            self.config.config['string_settings'] = {}
+        self.config.config['string_settings']['combo_template'] = template
+        self.config.save()
+    
+    def _update_layout(self):
+        """更新布局以支持滚动"""
+        self.random_panel.body().adjustSize()
+        self.random_panel.adjustSize()
+        self.titled_widget_group.adjustSize()
+        new_height = self.titled_widget_group.height()
+        self.body_area.setFixedHeight(new_height)
+        self.scroll_container.adjustSize()
+    
+    def _update_layout_combo(self):
+        """更新组合字符串面板布局以支持滚动"""
+        self.combo_panel.body().adjustSize()
+        self.combo_panel.adjustSize()
+        self.titled_widget_group.adjustSize()
+        new_height = self.titled_widget_group.height()
+        self.body_area.setFixedHeight(new_height)
+        self.scroll_container.adjustSize()
 
-    def _generate_guid(self): self.guid_result.setText(StringUtils.generate_guid())
-    def _generate_uuid(self): self.guid_result.setText(StringUtils.generate_uuid())
-    def _base64_encode(self):
-        try: self.base64_result.setText(StringUtils.base64_encode(self.base64_input.lineEdit().text()))
-        except Exception as e: self.base64_result.setText(f"错误: {e}")
-    def _base64_decode(self):
-        try: self.base64_result.setText(StringUtils.base64_decode(self.base64_input.lineEdit().text()))
-        except Exception as e: self.base64_result.setText(f"错误: {e}")
-    def _url_encode(self): self.url_result.setText(StringUtils.url_encode(self.url_input.lineEdit().text()))
-    def _url_decode(self): self.url_result.setText(StringUtils.url_decode(self.url_input.lineEdit().text()))
-    def _json_format(self):
-        try: self.json_result.setText(StringUtils.json_format(self.json_input.lineEdit().text()))
-        except Exception as e: self.json_result.setText(f"JSON格式错误: {e}")
-    def _json_minify(self):
-        try: self.json_result.setText(StringUtils.json_minify(self.json_input.lineEdit().text()))
-        except Exception as e: self.json_result.setText(f"JSON格式错误: {e}")
-    def _json_validate(self):
-        valid, msg = StringUtils.json_validate(self.json_input.lineEdit().text())
-        self.json_result.setText(msg)
-    def _regex_test(self):
-        result = StringUtils.regex_test(self.regex_pattern.lineEdit().text(), self.regex_text.lineEdit().text())
-        if not result["is_valid"]: self.regex_result.setText(f"正则表达式错误: {result['error']}")
-        elif result["matches"]:
-            text = f"找到 {len(result['matches'])} 个匹配:\n"
-            for m in result["matches"][:10]: text += f"  * \"{m['match']}\" (位置: {m['start']}-{m['end']})\n"
-            self.regex_result.setText(text)
-        else: self.regex_result.setText("没有找到匹配")
     def _calc_hash(self):
         text = self.hash_input.lineEdit().text()
         self.hash_result.setText(f"MD5:    {StringUtils.hash_md5(text)}\nSHA1:   {StringUtils.hash_sha1(text)}\nSHA256: {StringUtils.hash_sha256(text)}")

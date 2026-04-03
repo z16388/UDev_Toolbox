@@ -241,6 +241,8 @@ class APKToolsPage(SiPage):
         self.perm_panel.body().adjustSize()
         self.perm_panel.adjustSize()
         self.titled_widget_group.adjustSize()
+        self.body_area.setFixedHeight(self.titled_widget_group.height())
+        self.scroll_container.adjustSize()
         so_info = getattr(info, 'so_files_info', [])
         if so_info:
             self.so_list.setSoFiles(so_info)

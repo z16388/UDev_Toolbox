@@ -70,6 +70,8 @@ class CopyableTextArea(QWidget):
             h = lines * self._line_height + 20
             self.text_edit.setFixedHeight(h)
             self.setFixedHeight(h)
+            # 通知父容器尺寸已变化
+            self.updateGeometry()
 
     def text(self):
         return self.text_edit.toPlainText()

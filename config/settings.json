@@ -36,6 +36,9 @@
     "timeout": 30,
     "verify_ssl": false
   },
+  "string_settings": {
+    "combo_template": "{ULD:8}\n0x{O:2}  0x{O:2}\n{D:5}  {N:101-500}  {N:101-500}"
+  },
   "sidebar_pages": [
     {
       "name": "主页",
